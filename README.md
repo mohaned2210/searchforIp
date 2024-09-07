@@ -4,7 +4,7 @@
 
 طريقة الاستخدام:
 ```
-python3 dorkforipBing.py path/to/ip/file
+python3 dorkforipBing.py -u path/to/file -m ip
 ```
 طريقة تحميل جميع الايبهات من شودان ووضعها في ملف
 
