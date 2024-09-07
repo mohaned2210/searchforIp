@@ -2,13 +2,15 @@ import requests
 from bs4 import BeautifulSoup
 import time
 import sys
+import random
+import argparse
 
 def bing_search(query):
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/547.36 (KHTML, like Gecko) Chrome/53.0.3029.110 Safari/547.3'}
     url = f"https://www.bing.com/search?q={query}"
     response = requests.get(url, headers=headers)
-    return response.text
+    return response.text, url
 
 def parse_results(html):
     soup = BeautifulSoup(html, 'html.parser')
@@ -20,41 +22,43 @@ def parse_results(html):
         results.append({'title': title, 'link': link, 'description': description})
     return results
 
-def read_ips(file_path):
+def read_file(file_path):
     with open(file_path, 'r') as file:
         return [line.strip() for line in file]
 
-def save_results(ip, results):
+def save_results(target, results, search_url):
     if results:
-        with open(f"{ip}_results.txt", 'w') as file:
-            for result in results:
-                file.write(f"Title: {result['title']}\n")
-                file.write(f"Link: {result['link']}\n")
-                file.write("\n")
-        print(f"Find result for IP {ip}")
+        #print(f"Found results for {target}")
+        print(f"Search URL: {search_url}")
         return True
     return False
 
-def main(file_path):
-    ips = read_ips(file_path)
+def main(file_path, mode):
+    targets = read_file(file_path)
     found_any_result = False
+    for target in targets:
+        if mode == 'ip':
+            query = f'ip:"{target}"'
+        elif mode == 'subdomain':
+            query = f'site:{target}'
+        else:
+            print(f"Invalid mode: {mode}")
+            return
 
-    for ip in ips:
-        query = f'ip:"{ip}"'
         print(f"Searching for {query}...")
-        html = bing_search(query)
+        html, search_url = bing_search(query)
         results = parse_results(html)
-        if save_results(ip, results):
+        if save_results(target, results, search_url):
             found_any_result = True
-        time.sleep(5)  # Be polite and avoid being blocked by the search engine
+        time.sleep(random.randrange(2, 4))  # Be polite and avoid being blocked by the search engine
 
     if not found_any_result:
-        print("No result found")
+        print("No results found")
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python3 dorkforipBing.py <path_to_ip_file>")
-        sys.exit(1)
-    
-    file_path = sys.argv[1]
-    main(file_path)
+    parser = argparse.ArgumentParser(description="Search for IP addresses or subdomains using Bing.")
+    parser.add_argument("-u", "--file", required=True, help="Path to the file containing IPs or subdomains")
+    parser.add_argument("-m", "--mode", choices=['ip', 'subdomain'], required=True, help="Search mode: 'ip' or 'subdomain'")
+    args = parser.parse_args()
+
+    main(args.file, args.mode)
